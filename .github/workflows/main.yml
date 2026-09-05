@@ -36,7 +36,7 @@ jobs:
           zip -r iTorrent.ipa Payload
 
       - name: Upload IPA artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: iTorrent-IPA
           path: iTorrent.ipa
