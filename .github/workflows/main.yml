@@ -1,7 +1,7 @@
-name: Build iOS IPA
+name: Build Unsigned IPA
 
 on:
-  workflow_dispatch:   # 允许手动触发
+  workflow_dispatch:   # 手动触发
 
 jobs:
   build:
@@ -15,21 +15,26 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      # 如果项目使用了 CocoaPods，需要安装依赖
+      - name: Install CocoaPods dependencies
+        run: pod install
+
       - name: Build archive (unsigned)
         run: |
-          xcodebuild -project iTorrent.xcodeproj \
+          xcodebuild -workspace iTorrent.xcworkspace \
             -scheme iTorrent \
             -configuration Release \
             -archivePath build/iTorrent.xcarchive \
             archive \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_IDENTITY=""
 
       - name: Create IPA
         run: |
           mkdir Payload
           cp -r build/iTorrent.xcarchive/Products/Applications/iTorrent.app Payload/
           zip -r iTorrent.ipa Payload
-          ls -la
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v3
