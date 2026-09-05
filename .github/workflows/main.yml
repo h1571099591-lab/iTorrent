@@ -8,19 +8,16 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
 
-      - name: Install CocoaPods dependencies
-        run: pod install
-
       - name: Build archive (unsigned)
         run: |
-          xcodebuild -workspace iTorrent.xcworkspace \
+          xcodebuild -project iTorrent.xcodeproj \
             -scheme iTorrent \
             -configuration Release \
             -archivePath build/iTorrent.xcarchive \
