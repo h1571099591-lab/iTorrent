@@ -23,6 +23,7 @@ jobs:
             -scheme iTorrent \
             -configuration Release \
             -archivePath build/iTorrent.xcarchive \
+            -skipMacroValidation \
             archive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
