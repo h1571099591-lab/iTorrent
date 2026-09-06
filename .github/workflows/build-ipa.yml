@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -15,17 +15,36 @@ jobs:
       - name: Set up Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: '26.6'
+
+      - name: Prepare dependencies
+        run: |
+          brew install boost
+          ./Submodules/LibTorrent-Swift/make.sh
+
+      - name: Inject Firebase configuration
+        env:
+          FIREBASE_INFO_PLIST_BASE64: ${{ secrets.FIREBASE_INFO_PLIST_BASE64 }}
+        run: |
+          PLIST_PATH=iTorrent/Core/Assets/GoogleService-Info.plist
+          if [ -n "$FIREBASE_INFO_PLIST_BASE64" ]; then
+            echo -n "$FIREBASE_INFO_PLIST_BASE64" | base64 --decode -o "$PLIST_PATH"
+          elif [ ! -f "$PLIST_PATH" ]; then
+            echo "::error::GoogleService-Info.plist not found. Add it as the repository secret FIREBASE_INFO_PLIST_BASE64 (base64 of the file) or commit it to the repository."
+            exit 1
+          fi
 
       - name: Build archive (unsigned)
+        env:
+          SKIP_CRASHLYTICS_UPLOAD: '1'
         run: |
-          xcodebuild -project iTorrent.xcodeproj \
+          xcodebuild -workspace iTorrent.xcworkspace \
             -scheme iTorrent \
             -configuration Release \
             -destination "generic/platform=iOS" \
             -archivePath build/iTorrent.xcarchive \
             -skipMacroValidation \
-            archive \
+            clean archive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_IDENTITY=""
