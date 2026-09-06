@@ -6,9 +6,10 @@ on:
 jobs:
   build:
     runs-on: macos-26
+    timeout-minutes: 90
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: 'recursive'
 
@@ -17,11 +18,16 @@ jobs:
         with:
           xcode-version: '26.6'
 
+      # LibTorrent.framework is produced by the LibTorrent.xcodeproj inside the
+      # workspace; boost is required to configure the C++ build via make.sh.
       - name: Prepare dependencies
         run: |
           brew install boost
           ./Submodules/LibTorrent-Swift/make.sh
 
+      # GoogleService-Info.plist is gitignored (real file lives only on the
+      # developer's Mac). Use the secret when present, otherwise generate a
+      # placeholder so the CI-only unsigned build has a valid build input.
       - name: Inject Firebase configuration
         env:
           FIREBASE_INFO_PLIST_BASE64: ${{ secrets.FIREBASE_INFO_PLIST_BASE64 }}
@@ -65,6 +71,9 @@ jobs:
 PLIST
           fi
 
+      # Workspace build (not -project): LibTorrent.xcodeproj must be built.
+      # -skipMacroValidation fixes "Macro 'PerceptionMacros' must be enabled".
+      # SKIP_CRASHLYTICS_UPLOAD skips the Firebase dSYM upload script phase.
       - name: Build archive (unsigned)
         env:
           SKIP_CRASHLYTICS_UPLOAD: '1'
@@ -82,12 +91,17 @@ PLIST
 
       - name: Export IPA
         run: |
+          APP_PATH=build/iTorrent.xcarchive/Products/Applications/iTorrent.app
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::Archive did not produce $APP_PATH"
+            exit 1
+          fi
           mkdir Payload
-          cp -r build/iTorrent.xcarchive/Products/Applications/iTorrent.app Payload/
+          cp -r "$APP_PATH" Payload/
           zip -r iTorrent.ipa Payload
 
       - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: iTorrent-IPA
           path: iTorrent.ipa
